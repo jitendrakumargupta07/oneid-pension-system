@@ -30,7 +30,7 @@
             </li>
             <li class="nav-section">Citizens</li>
             <li class="nav-item">
-                <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.index') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> All Citizens
                 </a>
             </li>
@@ -59,7 +59,34 @@
                     <i class="fas fa-money-bill-wave"></i> Payments
                 </a>
             </li>
+            <li class="nav-section">Security & Audit</li>
+            <li class="nav-item">
+                <a href="{{ route('admin.fraud.index') }}" class="{{ request()->routeIs('admin.fraud.*') ? 'active' : '' }}">
+                    <i class="fas fa-shield-alt"></i> Fraud Alerts
+                    @php $fraudCount = \App\Models\FraudAlert::where('status','open')->where('severity','high')->count(); @endphp
+                    @if($fraudCount > 0)
+                        <span class="badge ms-auto bg-danger">{{ $fraudCount }}</span>
+                    @endif
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.admins.index') }}" class="{{ request()->routeIs('admin.admins.*') ? 'active' : '' }}">
+                    <i class="fas fa-users-cog"></i> System Admins
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.logs.index') }}" class="{{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i> Activity Log
+                </a>
+            </li>
+            <li class="nav-section">Reports</li>
+            <li class="nav-item">
+                <a href="{{ route('admin.reports.index') }}" class="{{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+                    <i class="fas fa-file-pdf"></i> Generate Reports
+                </a>
+            </li>
         </ul>
+
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2">
                 <div class="sidebar-avatar"><i class="fas fa-user-shield"></i></div>

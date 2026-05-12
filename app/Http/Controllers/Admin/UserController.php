@@ -6,55 +6,51 @@ use App\Http\Controllers\Controller;
 use App\Models\ElderlyProfile;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    /**
-     * List all elderly users with search/filter.
-     */
+    /** List all elderly users with search/filter. */
     public function index(Request $request)
     {
-        $query = User::with('elderlyProfile')
-            ->where('role', 'user');
+        $query = User::with('elderlyProfile')->where('role', 'user');
 
-        // Search by name, email, or OneID
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
                   ->orWhere('email', 'like', "%$search%")
-                  ->orWhereHas('elderlyProfile', function ($q) use ($search) {
+                  ->orWhereHas('elderlyProfile', fn($q) =>
                       $q->where('one_id', 'like', "%$search%")
-                        ->orWhere('aadhaar_number', 'like', "%$search%");
-                  });
+                        ->orWhere('aadhaar_number', 'like', "%$search%")
+                        ->orWhere('phone', 'like', "%$search%")
+                  );
             });
         }
 
-        // Filter by verification status
         if ($request->filled('verified')) {
-            $query->whereHas('elderlyProfile', function ($q) use ($request) {
-                $q->where('is_verified', $request->verified);
-            });
+            $query->whereHas('elderlyProfile', fn($q) =>
+                $q->where('is_verified', $request->verified)
+            );
         }
 
         $users = $query->latest()->paginate(15);
-
         return view('admin.users.index', compact('users'));
     }
 
-    /**
-     * Show a single user's full profile.
-     */
+    /** Show a single user's full profile. */
     public function show(User $user)
     {
-        $user->load(['elderlyProfile.pensionApplications.scheme', 'elderlyProfile.pensionApplications.payments']);
+        $user->load([
+            'elderlyProfile.pensionApplications.scheme',
+            'elderlyProfile.pensionApplications.payments',
+            'elderlyProfile.fraudAlerts',
+        ]);
         return view('admin.users.show', compact('user'));
     }
 
-    /**
-     * Verify (approve) an elderly citizen's profile.
-     */
+    /** Verify (approve/reject) an elderly citizen's profile. */
     public function verify(Request $request, ElderlyProfile $profile)
     {
         $request->validate([
@@ -64,27 +60,26 @@ class UserController extends Controller
 
         if ($request->action === 'approve') {
             $profile->update([
-                'is_verified'            => true,
-                'verified_at'            => now(),
-                'verified_by'            => auth()->id(),
-                'verification_remarks'   => $request->remarks,
+                'is_verified'          => true,
+                'verified_at'          => now(),
+                'verified_by'          => auth()->id(),
+                'verification_remarks' => $request->remarks,
             ]);
-
             $title   = '✅ Profile Verified';
-            $message = 'Your profile has been verified successfully. You can now apply for pension schemes.';
+            $message = 'Your profile has been verified. You can now apply for pension schemes.';
             $type    = 'success';
+            ActivityLogger::log('profile.verified', "Profile of {$profile->full_name} ({$profile->one_id}) verified", $profile);
         } else {
             $profile->update([
                 'is_verified'          => false,
                 'verification_remarks' => $request->remarks,
             ]);
-
             $title   = '❌ Profile Verification Rejected';
-            $message = 'Your profile verification was rejected. Reason: ' . ($request->remarks ?? 'Not specified');
+            $message = 'Profile verification rejected. Reason: ' . ($request->remarks ?? 'Not specified');
             $type    = 'danger';
+            ActivityLogger::log('profile.rejected', "Profile of {$profile->full_name} ({$profile->one_id}) rejected", $profile);
         }
 
-        // Send notification to user
         Notification::create([
             'user_id' => $profile->user_id,
             'title'   => $title,
@@ -97,16 +92,26 @@ class UserController extends Controller
     }
 
     /**
-     * Search by OneID.
+     * Universal search — by OneID, Aadhaar, phone, or name.
+     * Supports GET with no query (shows empty form) and with query.
      */
     public function search(Request $request)
     {
-        $request->validate(['one_id' => 'required|string']);
+        $profile = null;
+        $searched = false;
 
-        $profile = ElderlyProfile::with(['user', 'pensionApplications.scheme'])
-            ->where('one_id', $request->one_id)
-            ->first();
+        if ($request->filled('q')) {
+            $searched = true;
+            $term = trim($request->q);
 
-        return view('admin.users.search', compact('profile'));
+            $profile = ElderlyProfile::with(['user', 'pensionApplications.scheme', 'pensionApplications.payments', 'fraudAlerts'])
+                ->where('one_id', $term)
+                ->orWhere('aadhaar_number', $term)
+                ->orWhere('phone', $term)
+                ->orWhere('full_name', 'like', "%$term%")
+                ->first();
+        }
+
+        return view('admin.users.search', compact('profile', 'searched'));
     }
 }

@@ -37,15 +37,19 @@ class RegisteredUserController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => Hash::make($request->password),
+            'role'     => 'user',   // Default role for public registrations
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // New users go straight to profile creation
+        return redirect()->route('user.profile.create')
+            ->with('info', '🎉 Welcome! Please complete your elderly citizen profile to receive your OneID.');
+
     }
 }

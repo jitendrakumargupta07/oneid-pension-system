@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FraudController;
 use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SchemeController as AdminSchemeController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\NotificationController;
@@ -11,6 +14,7 @@ use App\Http\Controllers\User\ApplicationController as UserApplicationController
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\PaymentController as UserPaymentController;
 use App\Http\Controllers\User\ProfileController as UserProfileController;
+use App\Http\Controllers\Admin\AdminManagerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,24 +46,40 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     // Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Users & verification
+    // Admin Management
+    Route::resource('admins', AdminManagerController::class)->only(['index', 'create', 'store']);
+
+    // Citizens management & verification
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
     Route::post('/profiles/{profile}/verify', [AdminUserController::class, 'verify'])->name('profiles.verify');
     Route::get('/search', [AdminUserController::class, 'search'])->name('users.search');
 
-    // Pension applications
+    // Pension applications + document review
     Route::get('/applications', [AdminApplicationController::class, 'index'])->name('applications.index');
     Route::get('/applications/{application}', [AdminApplicationController::class, 'show'])->name('applications.show');
     Route::post('/applications/{application}/review', [AdminApplicationController::class, 'review'])->name('applications.review');
+    Route::post('/documents/{document}/review', [AdminApplicationController::class, 'reviewDocument'])->name('documents.review');
 
-    // Pension schemes
+    // Pension schemes (CRUD)
     Route::resource('schemes', AdminSchemeController::class)->names('schemes');
 
     // Payments
     Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/create', [AdminPaymentController::class, 'create'])->name('payments.create');
     Route::post('/payments', [AdminPaymentController::class, 'store'])->name('payments.store');
+
+    // Fraud Detection
+    Route::get('/fraud', [FraudController::class, 'index'])->name('fraud.index');
+    Route::post('/fraud/{alert}/resolve', [FraudController::class, 'resolve'])->name('fraud.resolve');
+
+    // Activity Logs (Audit Trail)
+    Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
+
+    // Reports
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/payments/pdf', [ReportController::class, 'paymentsPdf'])->name('reports.payments.pdf');
+    Route::get('/reports/applications/pdf', [ReportController::class, 'applicationsPdf'])->name('reports.applications.pdf');
 });
 
 /*
@@ -67,7 +87,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 | User Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('user')->name('user.')->middleware(['auth'])->group(function () {
+Route::prefix('user')->name('user.')->middleware(['auth', 'profile_complete'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');

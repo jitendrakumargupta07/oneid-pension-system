@@ -18,6 +18,8 @@ return new class extends Migration
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('remarks')->nullable();
             $table->string('application_number')->unique();
+            $table->boolean('fraud_flagged')->default(false);
+            $table->unsignedTinyInteger('eligibility_score')->default(0);
             $table->timestamps();
         });
     }

@@ -12,11 +12,13 @@ class PensionApplication extends Model
     protected $fillable = [
         'elderly_profile_id', 'scheme_id', 'status', 'applied_at',
         'reviewed_at', 'reviewed_by', 'remarks', 'application_number',
+        'fraud_flagged', 'eligibility_score',
     ];
 
     protected $casts = [
-        'applied_at'  => 'datetime',
-        'reviewed_at' => 'datetime',
+        'applied_at'    => 'datetime',
+        'reviewed_at'   => 'datetime',
+        'fraud_flagged' => 'boolean',
     ];
 
     // Relationships
@@ -40,6 +42,11 @@ class PensionApplication extends Model
         return $this->hasMany(PensionPayment::class);
     }
 
+    public function documents()
+    {
+        return $this->hasMany(ApplicationDocument::class);
+    }
+
     // Generate unique application number
     public static function generateApplicationNumber(): string
     {
@@ -54,4 +61,9 @@ class PensionApplication extends Model
     public function isPending(): bool  { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
+
+    public function pendingDocuments(): int
+    {
+        return $this->documents()->where('status', 'pending')->count();
+    }
 }
