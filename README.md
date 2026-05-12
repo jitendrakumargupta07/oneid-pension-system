@@ -145,17 +145,6 @@ Open your browser at **http://127.0.0.1:8000**
 
 ---
 
-## 🔑 Demo Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| **Admin** | admin@oneid.gov.in | Admin@1234 |
-| **Citizen 1** | ramesh@example.com | User@1234 |
-| **Citizen 2** | sunita@example.com | User@1234 |
-| **Citizen 3** | mohan@example.com | User@1234 |
-
----
-
 ## 🗂️ Project Structure
 
 ```
@@ -240,16 +229,6 @@ This ID is:
 - Stored permanently and never changes
 - Searchable by admins for instant citizen lookup
 - Displayed prominently in the citizen portal
-
----
-
-## 🎓 Viva Talking Points
-
-1. **Why Laravel?** — MVC architecture enforces clean separation of concerns; Eloquent ORM simplifies complex relationships
-2. **Why OneID?** — Prevents duplicate pension claims; provides a single source of truth across departments
-3. **RBAC Implementation** — Custom middleware checks `$user->role` on every request to admin/user routes
-4. **PDF Generation** — `barryvdh/laravel-dompdf` renders a Blade view to PDF server-side, no client-side dependency
-5. **Database Design** — Normalized to 3NF; foreign keys enforce referential integrity across all 6 tables
 
 ---
 
